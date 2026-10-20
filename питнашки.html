@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Пятнашки — Neon Slide</title>
+<style>
+:root{--bg:#090d1b;--panel:rgba(19,27,52,.82);--line:rgba(255,255,255,.12);--text:#f5f7ff;--muted:#aab4d4;--a:#7c5cff;--b:#24d6c8;--gold:#ffd166}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:radial-gradient(ellipse at 15% 5%,#20275c 0,transparent 35%),radial-gradient(ellipse at 90% 15%,#123f50 0,transparent 30%),linear-gradient(145deg,#080b17,#10172b 60%,#090d1b);display:flex;justify-content:center;padding:22px 14px 34px;overflow-x:hidden}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;background-image:radial-gradient(#ffffff25 1px,transparent 1px);background-size:34px 34px;opacity:.22}
+.app{width:min(100%,560px);position:relative;z-index:1}
+header{text-align:center;margin:8px 0 20px}
+.eyebrow{font-size:.72rem;letter-spacing:.25em;text-transform:uppercase;color:var(--b);font-weight:800}
+h1{margin:8px 0 7px;font-size:clamp(2rem,8vw,3.25rem);line-height:1;letter-spacing:-.05em;background:linear-gradient(100deg,#fff 10%,#b7a8ff 48%,#65f2e4);-webkit-background-clip:text;background-clip:text;color:transparent}
+.subtitle{margin:0;color:var(--muted);font-size:.94rem}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:16px;box-shadow:0 20px 60px #0005;backdrop-filter:blur(18px)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px}
+.stat{padding:11px 8px;border-radius:15px;background:#ffffff08;border:1px solid #ffffff0d;text-align:center}
+.stat span{display:block;font-size:.69rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.stat strong{font-size:1.16rem;font-variant-numeric:tabular-nums}
+.board-wrap{position:relative;padding:7px;border-radius:23px;background:linear-gradient(135deg,#7c5cff,#24d6c8,#ffd166);box-shadow:0 10px 35px #0005,0 0 32px #7c5cff22}
+.board{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;aspect-ratio:1;background:#0a1021;padding:7px;border-radius:17px;touch-action:manipulation}
+.tile{border:0;border-radius:13px;color:#fff;font-size:clamp(1.2rem,7vw,2.3rem);font-weight:850;cursor:pointer;position:relative;overflow:hidden;isolation:isolate;text-shadow:0 2px 12px #0003;background:linear-gradient(145deg,#8b75ff,#5742c6);box-shadow:inset 0 1px #ffffff55,inset 0 -4px #0002,0 5px 12px #0003;transition:transform .13s,filter .13s,box-shadow .13s;animation:appear .22s ease both}
+.tile:nth-child(4n+2){background:linear-gradient(145deg,#34ded1,#138eaa)}
+.tile:nth-child(4n+3){background:linear-gradient(145deg,#ffcf70,#f08c42)}
+.tile:nth-child(4n){background:linear-gradient(145deg,#ff7aa8,#c34691)}
+.tile:before{content:"";position:absolute;inset:0;background:linear-gradient(120deg,#ffffff30,transparent 42%);z-index:-1}
+.tile:hover{filter:brightness(1.12);transform:translateY(-2px);box-shadow:inset 0 1px #ffffff66,0 8px 18px #0004}
+.tile:active{transform:scale(.96)}
+.tile.empty{background:#ffffff06;border:1px dashed #ffffff12;box-shadow:inset 0 0 18px #0003;cursor:default}
+.tile.empty:before{display:none}
+@keyframes appear{from{opacity:.5;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+.controls{display:flex;gap:9px;margin-top:15px}
+button.control,select{border:1px solid var(--line);border-radius:13px;padding:12px 13px;background:#ffffff0b;color:var(--text);font:inherit;font-size:.88rem;font-weight:700}
+button.control{cursor:pointer;flex:1;transition:background .15s,transform .15s}
+button.control:hover{background:#ffffff18;transform:translateY(-1px)}
+button.primary{background:linear-gradient(100deg,#7658f5,#4b9de8);border:0;box-shadow:0 7px 18px #5f52da33}
+select{width:100%;margin-top:12px;outline:none}
+select option{background:#151d35}
+.bottom-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.sound-btn{display:flex;align-items:center;justify-content:center;gap:8px}
+.status{min-height:25px;text-align:center;color:var(--muted);font-size:.85rem;margin:13px 0 0}
+.status.good{color:var(--gold);font-weight:800}
+.help{color:var(--muted);font-size:.78rem;text-align:center;margin:15px 0 0;line-height:1.5}
+.win{position:absolute;inset:0;z-index:4;display:none;place-items:center;background:#080b17c9;backdrop-filter:blur(7px);border-radius:17px;text-align:center;padding:20px}
+.win.show{display:grid;animation:fade .3s ease}
+.win-card{max-width:280px}
+.win h2{font-size:2rem;margin:4px 0 8px;color:var(--gold)}
+.win p{color:#d7def5}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@media(max-width:380px){.panel{padding:11px}.board{gap:5px;padding:5px}.tile{border-radius:10px}.controls{flex-wrap:wrap}.stat strong{font-size:1rem}}
+</style>
+</head>
+<body>
+<main class="app">
+<header>
+  <div class="eyebrow">NEON PUZZLE • CLASSIC MODE</div>
+  <h1>ПЯТНАШКИ</h1>
+  <p class="subtitle">Собери числа по порядку. Почувствуй ритм победы.</p>
+</header>
+<section class="panel">
+  <div class="stats">
+    <div class="stat"><span>Ходы</span><strong id="moves">0</strong></div>
+    <div class="stat"><span>Время</span><strong id="time">00:00</strong></div>
+    <div class="stat"><span>Лучший результат</span><strong id="best">—</strong></div>
+  </div>
+  <div class="board-wrap">
+    <div class="board" id="board" aria-label="Игровое поле пятнашек"></div>
+    <div class="win" id="win">
+      <div class="win-card">
+        <div style="font-size:2.8rem">✦ 🏆 ✦</div>
+        <h2>Победа!</h2>
+        <p id="winText">Ты собрал пятнашки!</p>
+        <button class="control primary" id="playAgain">Играть ещё</button>
+      </div>
+    </div>
+  </div>
+  <div class="controls">
+    <button class="control primary" id="shuffle">↻ Новая игра</button>
+    <button class="control" id="undo">↶ Отменить ход</button>
+  </div>
+  <div class="bottom-row">
+    <button class="control sound-btn" id="music">♫ Музыка: Вкл.</button>
+    <button class="control sound-btn" id="effects">♪ Звуки: Вкл.</button>
+  </div>
+  <select id="difficulty" aria-label="Сложность">
+    <option value="80">Лёгкая — 80 перемешиваний</option>
+    <option value="180" selected>Обычная — 180 перемешиваний</option>
+    <option value="350">Сложная — 350 перемешиваний</option>
+  </select>
+  <p class="status" id="status">Нажми на плитку рядом с пустой клеткой, чтобы передвинуть её.</p>
+  <p class="help">Подсказка: можно играть касанием на телефоне или стрелками на клавиатуре. Музыка включается после первого нажатия.</p>
+</section>
+</main>
+<script>
+(() => {
+ const boardEl=document.getElementById('board'), movesEl=document.getElementById('moves'), timeEl=document.getElementById('time'), bestEl=document.getElementById('best'), statusEl=document.getElementById('status'), winEl=document.getElementById('win');
+ let tiles=[], moves=0, seconds=0, timer=null, started=false, finished=false, history=[], musicOn=true, effectsOn=true;
+ let audio=null, musicTimer=null, musicStep=0;
+ const $=id=>document.getElementById(id);
+ const solved=()=>tiles.every((v,i)=>v===(i===15?0:i+1));
+ const fmt=s=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+ function initAudio(){if(!audio){const AC=window.AudioContext||window.webkitAudioContext;if(AC)audio=new AC()} if(audio?.state==='suspended')audio.resume()}
+ function tone(freq,duration=.12,type='sine',volume=.045,delay=0){
+   if(!audio||!effectsOn)return;
+   const t=audio.currentTime+delay, o=audio.createOscillator(),g=audio.createGain();
+   o.type=type;o.frequency.setValueAtTime(freq,t);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(volume,t+.015);g.gain.exponentialRampToValueAtTime(.0001,t+duration);
+   o.connect(g);g.connect(audio.destination);o.start(t);o.stop(t+duration+.03);
+ }
+ function moveSound(){tone(440,.08,'triangle',.04);tone(660,.09,'sine',.025,.045)}
+ function startMusic(){
+   stopMusic();if(!musicOn)return;initAudio();if(!audio)return;
+   const notes=[261.63,329.63,392,329.63,293.66,349.23,440,349.23,261.63,329.63,392,523.25,440,392,329.63,293.66];
+   musicTimer=setInterval(()=>{if(!musicOn||!audio)return;const n=notes[musicStep++%notes.length];toneMusic(n,.34);if(musicStep%4===0)toneMusic(n/2,.42,.018)},290);
+ }
+ function toneMusic(freq,dur,vol=.013){if(!audio||!musicOn)return;const t=audio.currentTime,o=audio.createOscillator(),g=audio.createGain();o.type='sine';o.frequency.value=freq;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.04);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(audio.destination);o.start(t);o.stop(t+dur+.02)}
+ function stopMusic(){if(musicTimer)clearInterval(musicTimer);musicTimer=null}
+ function startClock(){if(timer)clearInterval(timer);timer=setInterval(()=>{if(started&&!finished){seconds++;timeEl.textContent=fmt(seconds)}},1000)}
+ function adjacent(i,j){return Math.abs(Math.floor(i/4)-Math.floor(j/4))+Math.abs(i%4-j%4)===1}
+ function render(){
+   boardEl.innerHTML='';
+   tiles.forEach((n,i)=>{
+     const b=document.createElement('button');b.className='tile'+(n===0?' empty':'');b.type='button';b.setAttribute('aria-label',n===0?'Пустая клетка':'Плитка '+n);
+     b.textContent=n===0?'':n;b.disabled=n===0||finished;
+     b.style.animationDelay=(i*8)+'ms';
+     b.addEventListener('click',()=>tryMove(i));boardEl.appendChild(b);
+   });
+   movesEl.textContent=moves;timeEl.textContent=fmt(seconds);
+ }
+ function tryMove(i){
+   if(finished)return;const z=tiles.indexOf(0);if(!adjacent(i,z))return;
+   initAudio();if(!started){started=true;startClock();startMusic()}
+   history.push(tiles.slice());[tiles[i],tiles[z]]=[tiles[z],tiles[i]];moves++;render();moveSound();
+   if(solved())win();
+ }
+ function shuffle(){
+   initAudio();if(timer)clearInterval(timer);stopMusic();started=false;finished=false;moves=0;seconds=0;history=[];winEl.classList.remove('show');
+   tiles=Array.from({length:16},(_,i)=>i===15?0:i+1);
+   let last=-1, count=Number($('difficulty').value);
+   for(let k=0;k<count;k++){
+     const z=tiles.indexOf(0),opts=[];
+     for(let i=0;i<16;i++)if(tiles[i]!==0&&adjacent(i,z)&&i!==last)opts.push(i);
+     if(!opts.length)for(let i=0;i<16;i++)if(tiles[i]!==0&&adjacent(i,z))opts.push(i);
+     const pick=opts[Math.floor(Math.random()*opts.length)];[tiles[z],tiles[pick]]=[tiles[pick],tiles[z]];last=z;
+   }
+   if(solved())shuffle();render();statusEl.className='status';statusEl.textContent='Готов? Передвигай плитки и собери числа от 1 до 15.';startClock();startMusic();
+ }
+ function win(){
+   finished=true;if(timer)clearInterval(timer);stopMusic();render();statusEl.className='status good';statusEl.textContent='Все числа на месте — отличная работа!';
+   tone(523.25,.25,'sine',.06);tone(659.25,.25,'sine',.06,.16);tone(783.99,.4,'sine',.06,.32);tone(1046.5,.55,'sine',.05,.53);
+   const key='neon15Best',old=localStorage.getItem(key),score=seconds*100+moves;
+   let best=old?Number(old):Infinity;if(score<best){best=score;localStorage.setItem(key,String(score))}
+   bestEl.textContent=best===Infinity?'—':String(Math.floor(best/100))+'с / '+(best%100)+' ход.';
+   $('winText').textContent=`Ходы: ${moves} • Время: ${fmt(seconds)}. Попробуешь улучшить результат?`;
+   winEl.classList.add('show');
+ }
+ function undo(){
+   if(!history.length||finished)return;tiles=history.pop();moves=Math.max(0,moves-1);render();statusEl.textContent='Ход отменён.';tone(330,.1,'triangle',.035);
+ }
+ function updateBest(){const x=localStorage.getItem('neon15Best');if(x!==null){const n=Number(x);bestEl.textContent=Math.floor(n/100)+'с / '+(n%100)+' ход.'}}
+ $('shuffle').addEventListener('click',shuffle);$('playAgain').addEventListener('click',shuffle);$('undo').addEventListener('click',undo);
+ $('music').addEventListener('click',()=>{initAudio();musicOn=!musicOn;$('music').textContent='♫ Музыка: '+(musicOn?'Вкл.':'Выкл.');if(musicOn)startMusic();else stopMusic()});
+ $('effects').addEventListener('click',()=>{initAudio();effectsOn=!effectsOn;$('effects').textContent='♪ Звуки: '+(effectsOn?'Вкл.':'Выкл.');if(effectsOn)tone(660,.1,'sine',.04)});
+ $('difficulty').addEventListener('change',shuffle);
+ document.addEventListener('keydown',e=>{
+   const z=tiles.indexOf(0);let i=-1;
+   if(e.key==='ArrowLeft'&&z%4<3)i=z+1;
+   if(e.key==='ArrowRight'&&z%4>0)i=z-1;
+   if(e.key==='ArrowUp'&&Math.floor(z/4)<3)i=z+4;
+   if(e.key==='ArrowDown'&&Math.floor(z/4)>0)i=z-4;
+   if(i>=0){e.preventDefault();tryMove(i)}
+ });
+ updateBest();shuffle();
+})();
+</script>
+</body>
+</html>
